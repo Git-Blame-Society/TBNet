@@ -21,3 +21,4 @@ pytorch_env/
 # Ignore data
 data/
 datasets/
+dataset/
