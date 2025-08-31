@@ -7,6 +7,8 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 from torch import optim
 import torch.nn.functional as F
+# from google.colab import drive
+from torch import optim
 
 # Mount Google Drive
 # drive.mount('/content/drive/')
@@ -242,3 +244,16 @@ for epoch in range(epochs):
     print(f"Epoch [{epoch+1}/{epochs}] - Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc:.2f}%")
 
 print("✅ Training finished")
+
+def predictTB(image_path):
+  with torch.no_grad():
+    image = Image.open(image_path).convert("RGB")
+    image = transform(image).unsqueeze(0).to(device)
+    output = model(image)
+    _, predicted = torch.max(output, 1)
+    return predicted.item()
+
+image_path = "./dataset/TB Dataset/Data/Tuberculosis-5.png"
+prediction = predictTB(image_path)
+
+print(f"TB prediction: {prediction}")
