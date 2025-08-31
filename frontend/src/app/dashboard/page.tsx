@@ -4,6 +4,7 @@ import { useState } from "react";
 const Dashboard = () => {
   const [prob, setProb] = useState('');
   const [pred, setPred] = useState('');
+  const [image, setImage] = useState(null);
 
   const labels = [
     "fever_for_two_weeks",
@@ -30,33 +31,64 @@ const Dashboard = () => {
     setChecked(newChecked);
   };
 
-  const handleUpload = async() => {
+  const handleUpload = async () => {
     const result = checked.map((val) => (val ? 1 : 0));
     console.log("Symptoms uploaded:", result);
-    
-    try{
-const res = await fetch("http://localhost:8000/upload-symptoms", {
-  method: "POST",
-  headers: {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ result }),
-});
 
-    if(res.ok){
-      let data = await res.json();
-      console.log(data);
-      setProb(data.probability);
-      setPred(data.prediction);
+    try {
+      const res = await fetch("http://localhost:8000/upload-symptoms", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ result }),
+      });
+
+      if (res.ok) {
+        let data = await res.json();
+        console.log(data);
+        setProb(data.probability);
+        setPred(data.prediction);
       }
-    }
-    catch(err){
+    } catch (err) {
       console.log(err.message);
     }
 
     return result;
   };
+
+const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  console.log("Selected file:", file);
+  setImage(file);
+};
+
+const handleImageUpload = async () => {
+  if (!image) {
+    alert("Please select an image first!");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("file", image);
+
+  try {
+    const res = await fetch("http://localhost:8000/upload-image", {
+      method: "POST",
+      body: formData, // sending multipart/form-data
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      console.log("Image response:", data);
+      setProb(data.probability);
+      setPred(data.prediction);
+    }
+  } catch (err) {
+    console.error("Upload error:", err.message);
+  }
+};
 
   return (
     <div className="p-4">
@@ -73,13 +105,36 @@ const res = await fetch("http://localhost:8000/upload-symptoms", {
           </label>
         ))}
       </div>
+
+      {/* Upload symptoms button */}
       <button
         onClick={handleUpload}
         className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
       >
         Upload Symptoms
       </button>
-      <p>Probabilty: {prob}</p>
+
+      {/* Upload image section */}
+<div className="mt-6">
+  <h2 className="text-xl font-bold mb-2">Upload X-ray Image</h2>
+
+  <input 
+    type="file" 
+    accept="image/*" 
+    id="fileInput"
+    name="file"
+    onChange={handleImageChange} 
+  />
+
+  <button
+    onClick={handleImageUpload}
+    className="ml-2 px-4 py-2 bg-green-500 text-white rounded"
+  >
+    Upload Image
+  </button>
+</div>
+
+      <p className="mt-4">Probability: {prob}</p>
       <p>Prediction: {pred}</p>
     </div>
   );
