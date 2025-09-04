@@ -78,6 +78,9 @@ def clean_labels(df):
 
 # --- Prediction Function ---
 def PredictImage(image_path):
+    model = TBClassifier().to(device)
+    model.load_state_dict(torch.load("best_tb_model.pth", map_location=device))
+    model.eval()
     with torch.no_grad():
         image = Image.open(image_path).convert("RGB")
         image = transform(image).unsqueeze(0).to(device)
@@ -90,6 +93,10 @@ def PredictImage(image_path):
         return prob_tb, label
 
 # --- Main Code ---
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print("Using device:", device)
+
 if __name__ == "__main__":
     # Setting up the path to the datasets
     train_image_path = "./dataset/TB Dataset/Data"
@@ -140,8 +147,6 @@ if __name__ == "__main__":
         break  # Just show the first batch
 
     # --- Training Setup ---
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Using device:", device)
 
     model = TBClassifier().to(device)
     criterion = nn.CrossEntropyLoss()
