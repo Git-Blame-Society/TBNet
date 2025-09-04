@@ -4,7 +4,7 @@ import shutil
 import os
 import torch
 import classification
-import convolution
+import test_convo
 
 app = FastAPI()
 
@@ -40,8 +40,7 @@ def uploadSymptoms(payload: dict):
         label = 1 if prob > 0.5 else 0
 
         return {
-            "probability": prob,
-            "prediction": label
+            "sym_probability": prob
         }
 
     except Exception as e:
@@ -54,11 +53,12 @@ async def upload_image(file: UploadFile = File(...)):
         with open(file_location, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        prob, label = convolution.PredictImage(file_location)
+        prob = test_convo.test_prediction(file_location)
+
+        os.remove(file_location)
 
         return {
-            "probability": prob,
-            "prediction": label
+            "image_probability": prob
         }
 
     except Exception as e:

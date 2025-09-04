@@ -2,8 +2,10 @@
 import { useState } from "react";
 
 const Dashboard = () => {
-  const [prob, setProb] = useState('');
-  const [pred, setPred] = useState('');
+  const [prob, setProb] = useState(0);
+  const [pred, setPred] = useState(0);
+  const [sym_prob, setSymProb] = useState(0);
+  const [image_prob, setImageProb] = useState(0);
   const [image, setImage] = useState(null);
 
   const labels = [
@@ -31,8 +33,15 @@ const Dashboard = () => {
     setChecked(newChecked);
   };
 
-  const handleUpload = async () => {
-    const result = checked.map((val) => (val ? 1 : 0));
+
+const handleImageChange = (e) => {
+  const file = e.target.files[0];
+  console.log("Selected file:", file);
+  setImage(file);
+};
+
+const handleDataUpload = async () => {
+  const result = checked.map((val) => (val ? 1 : 0));
     console.log("Symptoms uploaded:", result);
 
     try {
@@ -48,23 +57,12 @@ const Dashboard = () => {
       if (res.ok) {
         let data = await res.json();
         console.log(data);
-        setProb(data.probability);
-        setPred(data.prediction);
+        setSymProb(data.sym_probability);
       }
     } catch (err) {
       console.log(err.message);
     }
 
-    return result;
-  };
-
-const handleImageChange = (e) => {
-  const file = e.target.files[0];
-  console.log("Selected file:", file);
-  setImage(file);
-};
-
-const handleImageUpload = async () => {
   if (!image) {
     alert("Please select an image first!");
     return;
@@ -80,18 +78,22 @@ const handleImageUpload = async () => {
     });
 
     if (res.ok) {
-  const data = await res.json();
-  if (data.error) {
-    console.error("Backend error:", data.error);
-    return;
-  }
-  console.log("Image response:", data);
-  setProb(data.probability);
-  setPred(data.prediction);
-} else {
-  console.error("Response not ok:", res.status);
-}
+      const data = await res.json();
+      console.log("Image response:", data);
+      console.log("progb==b", data.image_probability);
+      setImageProb(data.image_probability);
 
+      let final_prob = (sym_prob * 0.3) + (data.image_probability * 0.7);
+
+      if(final_prob > 0.5){
+        setPred(1);
+      }
+      else{
+        setPred(0);
+      }
+
+      setProb(final_prob);
+    }
   } catch (err) {
     console.error("Upload error:", err.message);
   }
@@ -113,17 +115,9 @@ const handleImageUpload = async () => {
         ))}
       </div>
 
-      {/* Upload symptoms button */}
-      <button
-        onClick={handleUpload}
-        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
-      >
-        Upload Symptoms
-      </button>
-
       {/* Upload image section */}
 <div className="mt-6">
-  <h2 className="text-xl font-bold mb-2">Upload X-ray Image</h2>
+  <h2 className="text-xl font-bold mb-2">Predict TB</h2>
 
   <input
     type="file"
@@ -134,10 +128,10 @@ const handleImageUpload = async () => {
   />
 
   <button
-    onClick={handleImageUpload}
+    onClick={handleDataUpload}
     className="ml-2 px-4 py-2 bg-green-500 text-white rounded"
   >
-    Upload Image
+    Predict TB
   </button>
 </div>
 

@@ -88,9 +88,8 @@ def PredictImage(image_path):
         output = model(image)
         probs = F.softmax(output, dim=1)  # [batch, 2]
         prob_tb = probs[0][1].item()      # probability for TB (class 1)
-
-        label = 1 if prob_tb > 0.5 else 0
-        return prob_tb, label
+        
+        return prob_tb
 
 # --- Main Code ---
 

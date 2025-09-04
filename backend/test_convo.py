@@ -1,4 +1,6 @@
 import convolution
 
-prob, label = convolution.PredictImage("./dataset/Testing Dataset/Data/Normal-669.png")
-print(f"TB Probability: {prob:.4f}, Predicted Label: {label}")
+def test_prediction(path):
+    prob = convolution.PredictImage(path)
+    print(f"TB Probability: {prob:.4f}")
+    return { prob }
