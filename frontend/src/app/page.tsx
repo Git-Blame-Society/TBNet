@@ -1,12 +1,9 @@
 import Link from 'next/link';
-import Navbar from './components/Navbar';
 const Home = () => {
   return (
-    <>
-      <Navbar />
-
+    <main>
       <Link href="/dashboard">Go to Dashboard</Link>
-    </>
+    </main>
   );
 }
 
