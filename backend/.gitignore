@@ -9,6 +9,7 @@ venv/
 env/
 .venv/
 pytorch_env/
+model-dev/
 
 # Ignore Jupyter checkpoints
 .ipynb_checkpoints/
