@@ -263,7 +263,9 @@ curl -X POST http://127.0.0.1:8000/upload-image \
 
 
 
-https://github.com/user-attachments/assets/26a66cf8-b6e5-4f2a-a6ca-d9fc6835d794
+
+https://github.com/user-attachments/assets/4a56cda5-4f0b-45da-bbd1-e49561212596
+
 
 
 
