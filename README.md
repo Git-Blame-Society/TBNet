@@ -261,6 +261,12 @@ curl -X POST http://127.0.0.1:8000/upload-image \
   -F "file=@sample_xray.jpg"
 ```
 
+
+
+https://github.com/user-attachments/assets/26a66cf8-b6e5-4f2a-a6ca-d9fc6835d794
+
+
+
 ---
 
 ## 📁 Project Structure
