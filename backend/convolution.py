@@ -9,32 +9,7 @@ from torch import optim
 import torch.nn.functional as F
 from torch import optim
 
-# Set the path to your dataset
-image_dataset_path = "./dataset/TB Dataset/Data/"  # Update with your dataset path
-
-# Load your second CSV file (dataset_2 - image labels)
-url_2 = "./dataset/TB Dataset/Label/Label.csv"      #path to image label CSV file
-dataset_2 = pd.read_csv(url_2)
-
-# Clean the columns in both CSV files
-dataset_2.columns = dataset_2.columns.str.strip().str.lower().str.replace(" ", "_")
-dataset_2["name"] = dataset_2["name"].astype(str) + ".png"
-
-# Rename columns in dataset_2 to match the expected format
-dataset_2.rename(columns={"name": "filename", "label": "label"}, inplace=True)
-
-# Check if path exists
-print("Dataset path:", image_dataset_path)
-print("Is the dataset path valid?", os.path.exists(image_dataset_path))
-
-# Define the image transformations
-transform = transforms.Compose([
-    transforms.Resize((224, 224)),  # Resize all images to a consistent size (224x224)
-    transforms.ToTensor(),  # Convert the image to a PyTorch tensor (scaled [0, 1])
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalize (ImageNet mean/std)
-])
-
-# Dataset Class to load images and labels
+# --- Dataset Class to load images and labels ---
 class TBImageDataset(Dataset):
     def __init__(self, image_dir, transform=None, csv_data=None):
         self.image_dir = image_dir
@@ -62,37 +37,7 @@ class TBImageDataset(Dataset):
 
         return image, label
 
-
-# Initialize the dataset with the second CSV data for labels
-image_dataset = TBImageDataset(
-    image_dir=image_dataset_path,
-    transform=transform,
-    csv_data=dataset_2  # Pass the second CSV dataset for image labels
-)
-
-# Check how many samples are loaded
-print(f"Number of samples in dataset: {len(image_dataset)}")
-
-# Create DataLoaders
-image_data = DataLoader(image_dataset, batch_size=7, shuffle=True)
-
-# Test one batch of images
-for images, labels in image_data:
-    print(f"Batch images shape: {images.shape}")
-    print(f"Batch labels: {labels}")
-    break  # Just show the first batch
-
-all_images = []
-all_labels = []
-
-for images, labels in image_data:
-    all_images.extend(images)
-    all_labels.extend(labels)
-    
-X_tensor_image = torch.stack(all_images, dim=0)      # images are already batched
-Y_tensor_image = torch.stack(all_labels, dim=0)    # stack scalars into 1D tensor
-
-# --- Model (same as yours) ---
+# --- Model ---
 class TBClassifier(nn.Module):
     def __init__(self):
         super(TBClassifier, self).__init__()
@@ -115,59 +60,155 @@ class TBClassifier(nn.Module):
         x = self.fc2(x)
         return x
 
+# --- Define the image transformations ---
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),  # Resize all images to a consistent size (224x224)
+    transforms.ToTensor(),  # Convert the image to a PyTorch tensor (scaled [0, 1])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Normalize (ImageNet mean/std)
+])
 
-# --- Setup ---
+# --- Cleaning the coloums of labels ---
+def clean_labels(df):
+    df.columns = df.columns.str.strip().str.lower().str.replace(" ", "_")
+    df["name"] = df["name"].astype(str) + ".png"
+
+    # Renaming columns in dataset_2 to match the expected format
+    df.rename(columns={"name": "filename", "label": "label"}, inplace=True)
+    return df
+
+# --- Prediction Function ---
+def PredictImage(image_path):
+    model = TBClassifier().to(device)
+    model.load_state_dict(torch.load("best_tb_model.pth", map_location=device))
+    model.eval()
+    with torch.no_grad():
+        image = Image.open(image_path).convert("RGB")
+        image = transform(image).unsqueeze(0).to(device)
+
+        output = model(image)
+        probs = F.softmax(output, dim=1)  # [batch, 2]
+        prob_tb = probs[0][1].item()      # probability for TB (class 1)
+        
+        return prob_tb
+
+# --- Main Code ---
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print("Using device:", device)
 
-model = TBClassifier().to(device)
-criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+if __name__ == "__main__":
+    # Setting up the path to the datasets
+    train_image_path = "./dataset/TB Dataset/Data"
+    test_image_path = "./dataset/Testing Dataset/Data"
 
-# --- Prepare dataset tensors ---
-X_tensor_image = torch.stack(all_images, dim=0)        # shape [N, 3, 224, 224]
-Y_tensor_image = torch.tensor(all_labels, dtype=torch.long)  # shape [N]
-print("Dataset:", X_tensor_image.shape, Y_tensor_image.shape)
+    train_csv = "./dataset/TB Dataset/Label/Label.csv"
+    test_csv = "./dataset/Testing Dataset/Label/Label.csv"
 
-# --- Training with mini-batches ---
-batch_size = 32
-epochs = 10
+    # Loading the CSV Label files
+    train_df = pd.read_csv(train_csv)
+    test_df = pd.read_csv(test_csv)
 
-num_samples = X_tensor_image.size(0)
+    train_df = clean_labels(train_df)
+    test_df = clean_labels(test_df)
 
-for epoch in range(epochs):
-    running_loss = 0.0
-    correct = 0
-    total = 0
+    # Check if path exists
+    print("Train Dataset path:", train_image_path)
+    print("Is the dataset path valid?", os.path.exists(train_image_path))
+    print("Test Dataset path:", test_image_path)
+    print("Is the dataset path valid?", os.path.exists(test_image_path))
 
-    for i in range(0, num_samples, batch_size):
-        X_batch = X_tensor_image[i:i+batch_size].to(device)
-        Y_batch = Y_tensor_image[i:i+batch_size].to(device)
+    # Initialize the dataset with the CSV data for labels
+    train_dataset = TBImageDataset(
+        image_dir=train_image_path,
+        transform=transform,
+        csv_data=train_df  # Pass the second CSV dataset for image labels
+    )
+    test_dataset = TBImageDataset(
+        image_dir=test_image_path,
+        transform=transform,
+        csv_data=test_df  # Pass the second CSV dataset for image labels
+    )
 
-        outputs = model(X_batch)
-        loss = criterion(outputs, Y_batch)
+    # Check how many samples are loaded
+    print(f"Number of samples in train dataset: {len(train_dataset)}")
+    print(f"Number of samples in test dataset: {len(test_dataset)}")
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+    # Create DataLoaders
+    train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory = True)
+    test_loader = DataLoader(test_dataset, batch_size=32, shuffle=True, num_workers=4, pin_memory = True)
 
-        running_loss += loss.item()
+    print(f"Train Samples: {len(train_dataset)}, Test Samples: {len(test_dataset)}")
 
-        _, predicted = torch.max(outputs, 1)
-        total += Y_batch.size(0)
-        correct += (predicted == Y_batch).sum().item()
+    # Test one batch of images
+    for images, labels in test_loader:
+        print(f"Batch images shape: {images.shape}")
+        print(f"Batch labels: {labels}")
+        break  # Just show the first batch
 
-    epoch_loss = running_loss / (num_samples / batch_size)
-    epoch_acc = 100 * correct / total
-    print(f"Epoch [{epoch+1}/{epochs}] - Loss: {epoch_loss:.4f}, Accuracy: {epoch_acc:.2f}%")
+    # --- Training Setup ---
 
-print("✅ Training finished")
+    model = TBClassifier().to(device)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-def PredictImage(image_path):
-  with torch.no_grad():
-    image = Image.open(image_path).convert("RGB")
-    image = transform(image).unsqueeze(0).to(device)
-    output = model(image)
-    _, predicted = torch.max(output, 1)
-    return predicted.item()
+    epochs = 10
+    best_acc = 0.0
 
+    for epoch in range(epochs):
+        # --- Training ---
+        model.train()
+        running_loss = 0.0
+        correct = 0
+        total = 0
+
+        # looping directly over batches from Dataloader
+        for images, labels in train_loader:
+            images, labels = images.to(device), labels.to(device)
+
+            # Forward Pass
+            outputs = model(images)
+            loss = criterion(outputs, labels)
+
+            # Backprop + optimize
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            running_loss += loss.item()
+
+            # Accuracy
+            _, predicted = torch.max(outputs, 1)
+            total += labels.size(0)
+            correct += (predicted == labels).sum().item()
+
+        train_loss = running_loss / len(train_loader)
+        train_acc = 100 * correct / total
+
+        # --- Testing or Validation ---
+        model.eval()
+        test_loss = 0.0
+        correct = 0
+        total = 0
+
+        with torch.inference_mode():
+            for images, labels in test_loader:
+                images, labels = images.to(device), labels.to(device)
+
+                outputs = model(images)
+                loss = criterion(outputs, labels)
+                test_loss += loss.item()
+
+                _, predicted = torch.max(outputs, 1)
+                total += labels.size(0)
+                correct += (predicted == labels).sum().item()
+
+        test_loss /= len(test_loader)
+        test_acc = 100 * correct / total
+        print(f"Epoch [{epoch+1} / {epochs}]")
+        print(f"Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.2f}% \n Test Loss: {test_loss:.4f}, Test Acc: {test_acc:.2f}%")
+        if test_acc > best_acc:
+            best_acc = test_acc
+            torch.save(model.state_dict(), "best_tb_model.pth")
+            print(f"✅ Saved new best model with acc {best_acc:.2f}%")
+
+    print("✅ Training finished")

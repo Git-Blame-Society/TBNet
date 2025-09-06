@@ -2,9 +2,9 @@ from fastapi import FastAPI, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 import shutil
 import os
-
+import torch
 import classification
-import convolution
+import test_convo
 
 app = FastAPI()
 
@@ -36,38 +36,29 @@ def uploadSymptoms(payload: dict):
 
         prob = classification.PredictSymptoms(input_tensor)
 
-        pred = 0 
-    
-        if(prob > 0.5):
-            pred = 1 
-        else:
-            pred = 0
+        prob = float(prob)  # assume your model already returns probability
+        label = 1 if prob > 0.5 else 0
 
-        return {"probability": prob, "prediction": pred}
+        return {
+            "sym_probability": prob
+        }
+
     except Exception as e:
         return {"error": str(e)}
 
-@app.post("/upload-image")
+@app.post("/upload-image", status_code=200)
 async def upload_image(file: UploadFile = File(...)):
     try:
-        # Save uploaded file temporarily (optional)
         file_location = f"temp_{file.filename}"
         with open(file_location, "wb") as f:
             shutil.copyfileobj(file.file, f)
 
-        pred = convolution.PredictImage(file_location)
+        prob = test_convo.test_prediction(file_location)
 
-        prob = 0 
-
-        if(pred > 0.5):
-            prob = 1 
-        else:
-            prob = 0
+        os.remove(file_location)
 
         return {
-            "filename": file.filename,
-            "probability": prob,
-            "prediction": pred  # 1 = TB, 0 = Normal
+            "image_probability": prob
         }
 
     except Exception as e:
