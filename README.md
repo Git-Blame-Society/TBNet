@@ -37,7 +37,7 @@ Please **do not use this project for actual medical decisions**.
 
 ## 🛠️ Tech Stack
 - **Backend**: FastAPI, PyTorch
-- **Frontend**: Next.js, Tailwind CSS, Shadcn UI
+- **Frontend**: Next.js v15.5.2, Tailwind CSS, Shadcn UI
 - **Languages**: Python 3.12.10, Node v22.16.0
 
 ---
