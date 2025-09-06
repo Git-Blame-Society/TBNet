@@ -47,7 +47,7 @@ Please **do not use this project for actual medical decisions**.
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/TBNet.git
+git clone https://github.com/Git-Blame-Society/TBNet.git
 cd TBNet
 ```
 
