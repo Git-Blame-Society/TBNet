@@ -1,5 +1,7 @@
 "use client";
 
+import { FileText } from "lucide-react";
+
 interface PredictionResultProps {
   result: {
     probability: number;
@@ -20,8 +22,12 @@ export default function PredictionResult({ result, isAnalyzing }: PredictionResu
 
   if (!result) {
     return (
-      <div className="border rounded-lg bg-white shadow-sm p-6 text-center text-gray-500">
-        No prediction yet. Please upload data and click <b>Predict TB</b>.
+      <div className="border rounded-lg bg-white shadow-sm p-6 text-center text-gray-500 flex flex-col items-center space-y-3">
+        <FileText className="w-20 h-20 text-gray-400" />
+        <h2 className="text-lg font-semibold text-gray-700">Awaiting Analysis</h2>
+        <p>
+          No prediction yet. Please upload data and click <b>Predict TB</b>.
+        </p>
       </div>
     );
   }
@@ -48,9 +54,7 @@ export default function PredictionResult({ result, isAnalyzing }: PredictionResu
         <h3 className="text-sm font-medium mb-2 text-gray-700">AI Probability</h3>
         <div className="w-full bg-gray-200 rounded-full h-5 overflow-hidden">
           <div
-            className={`h-5 flex items-center justify-center text-xs font-medium text-white ${
-              isHighRisk ? "bg-red-600" : "bg-green-600"
-            }`}
+            className="h-5 flex items-center justify-center text-xs font-medium text-white bg-black"
             style={{ width: `${probability}%` }}
           >
             {probability}%
